@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <malloc.h>
+#include <math.h>
 
 #include "mandelbrot.h"
 #include "ppm.h"
@@ -135,13 +136,18 @@ parallel_mandelbrot(struct mandelbrot_thread *args, struct mandelbrot_param *par
 {
 #if LOADBALANCE == 0
 	// naive *parallel* implementation. Compiled only if LOADBALANCE = 0
-    int row_size = ceil((float) parameters->height / (float) mandelbrot_thread->id);
+    int row_size = ceil((float) parameters->height / (float) NB_THREADS);
 
-    parameters->begin_h = row_size * mandelbrot_thread->id;
-    parameters->end_h = (row_size * mandelbrot_thread->id + 1) - 1;
+    parameters->begin_h = row_size * args->id;
+    parameters->end_h = (row_size * (args->id + 1));
 
     parameters->begin_w = 0;
     parameters->end_w = parameters->width;
+
+#ifdef DEBUG
+    printf("Thread %d row size is %d, height %d\n", args->id, row_size, parameters->height);
+    printf("Thread %d begin %d, end %d\n", args->id, parameters->begin_h, parameters->end_h);
+#endif
 
     compute_chunk(parameters);
 #endif
