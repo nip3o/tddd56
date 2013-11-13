@@ -121,16 +121,33 @@ compute_chunk(struct mandelbrot_param *args)
 }
 
 /***** You may modify this portion *****/
+
 #if NB_THREADS > 0
+pthread_mutex_t mutex;
+int row_count;
+
 void
 init_round(struct mandelbrot_thread *args)
 {
 	// Initialize or reinitialize here variables before any thread starts or restarts computation
 #if LOADBALANCE == 1
-	//pthread_mutex_lock(...)
+    if(args->id != 0) return;
 
-	//pthread_mutex_unlock(...)
+    pthread_mutex_init(&mutex, NULL);
+    row_count = 0;
 #endif
+}
+
+void
+compute_rows(struct mandelbrot_param *parameters, int start_row, int end_row)
+{
+    parameters->begin_h = start_row;
+    parameters->end_h = end_row;
+
+    parameters->begin_w = 0;
+    parameters->end_w = parameters->width;
+
+    compute_chunk(parameters);
 }
 
 /*
@@ -140,24 +157,26 @@ void
 parallel_mandelbrot(struct mandelbrot_thread *args, struct mandelbrot_param *parameters)
 {
 #if LOADBALANCE == 0
-	// naive *parallel* implementation. Compiled only if LOADBALANCE = 0
+    // naive *parallel* implementation. Compiled only if LOADBALANCE = 0
+    
     int row_size = ceil((float) parameters->height / (float) NB_THREADS);
-
-    parameters->begin_h = row_size * args->id;
-    parameters->end_h = (row_size * (args->id + 1));
-
-    parameters->begin_w = 0;
-    parameters->end_w = parameters->width;
-
-#ifdef DEBUG
-    printf("Thread %d row size is %d, height %d\n", args->id, row_size, parameters->height);
-    printf("Thread %d begin %d, end %d\n", args->id, parameters->begin_h, parameters->end_h);
-#endif
-
-    compute_chunk(parameters);
+    compute_rows(parameters, row_size * args->id, (row_size * (args->id + 1) ));
 #endif
 #if LOADBALANCE == 1
 	// Your load-balanced smarter solution. Compiled only if LOADBALANCE = 1
+	int terminate = 0;
+	do {
+	    /* Critical Section */
+	    pthread_mutex_lock(&mutex);
+        int row = row_count++;
+        pthread_mutex_unlock(&mutex);
+        
+        if (row >= parameters->height)
+            terminate = 1;
+        else 
+            compute_rows(parameters, row, row + 1);
+	} while (terminate == 0);    
+	    
 #endif
 #if LOADBALANCE == 2
 	// A second *optional* load-balancing solution. Compiled only if LOADBALANCE = 2
