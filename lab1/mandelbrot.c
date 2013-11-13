@@ -92,7 +92,7 @@ compute_chunk(struct mandelbrot_param *args)
 	float Cim, Cre;
 	color_t pixel;
 
-	// Iterate hrough lines
+	// Iterate through lines
 	for (i = args->begin_h; i < args->end_h; i++)
 	{
 		// Iterate through pixels in a line
@@ -135,6 +135,15 @@ parallel_mandelbrot(struct mandelbrot_thread *args, struct mandelbrot_param *par
 {
 #if LOADBALANCE == 0
 	// naive *parallel* implementation. Compiled only if LOADBALANCE = 0
+    int row_size = ceil((float) parameters->height / (float) mandelbrot_thread->id);
+
+    parameters->begin_h = row_size * mandelbrot_thread->id;
+    parameters->end_h = (row_size * mandelbrot_thread->id + 1) - 1;
+
+    parameters->begin_w = 0;
+    parameters->end_w = parameters->width;
+
+    compute_chunk(parameters);
 #endif
 #if LOADBALANCE == 1
 	// Your load-balanced smarter solution. Compiled only if LOADBALANCE = 1
@@ -144,7 +153,7 @@ parallel_mandelbrot(struct mandelbrot_thread *args, struct mandelbrot_param *par
 #endif
 }
 /***** end *****/
-#else
+#else // if not using threads
 void
 sequential_mandelbrot(struct mandelbrot_param *parameters)
 {
@@ -202,7 +211,7 @@ run_thread(void * buffer)
 
 		// Wait for the next work signal
 		pthread_barrier_wait(&thread_pool_barrier);
-	
+
 		// Fetch the latest parameters
 		param = mandelbrot_param;
 	}
