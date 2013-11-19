@@ -5,20 +5,20 @@
  *  Copyright 2011 Nicolas Melot
  *
  * This file is part of TDDD56.
- * 
+ *
  *     TDDD56 is free software: you can redistribute it and/or modify
  *     it under the terms of the GNU General Public License as published by
  *     the Free Software Foundation, either version 3 of the License, or
  *     (at your option) any later version.
- * 
+ *
  *     TDDD56 is distributed in the hope that it will be useful,
  *     but WITHOUT ANY WARRANTY without even the implied warranty of
  *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *     GNU General Public License for more details.
- * 
+ *
  *     You should have received a copy of the GNU General Public License
  *     along with TDDD56. If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  */
 
 #ifndef DEBUG
@@ -38,7 +38,7 @@
 #if NON_BLOCKING == 0
 #warning Stacks are synchronized through locks
 #else
-#if NON_BLOCKING == 1 
+#if NON_BLOCKING == 1
 #warning Stacks are synchronized through lock-based CAS
 #else
 #warning Stacks are synchronized through hardware CAS
@@ -78,6 +78,9 @@ stack_init(stack_t *stack, size_t size)
   assert(stack != NULL);
   assert(size > 0);
 
+//  stack->data = malloc(size);
+  stack->head = 0;
+
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
 #elif NON_BLOCKING == 1
@@ -109,6 +112,12 @@ stack_check(stack_t *stack)
 int
 stack_push(stack_t *stack, void* buffer)
 {
+  printf("Pushing %d to %p\n", *((int*)buffer), &stack->data[stack->head]);
+
+  stack->data[stack->head++] = buffer;
+
+  printf("Head is at %d, %p\n", *((int*)buffer), &stack->data[stack->head]);
+
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
 #elif NON_BLOCKING == 1
@@ -124,6 +133,14 @@ stack_push(stack_t *stack, void* buffer)
 int
 stack_pop(stack_t *stack, void* buffer)
 {
+  printf("Popping from %p\n", &stack->data[stack->head -1]);
+
+  memcpy(buffer, stack->data[--stack->head], sizeof(int));
+
+  //buffer = stack->data[--stack->head];
+  printf("Buffer value is %d\n", *((int*)buffer));
+
+
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
 #elif NON_BLOCKING == 1

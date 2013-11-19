@@ -5,20 +5,20 @@
  *  Copyright 2011 Nicolas Melot
  *
  * This file is part of TDDD56.
- * 
+ *
  *     TDDD56 is free software: you can redistribute it and/or modify
  *     it under the terms of the GNU General Public License as published by
  *     the Free Software Foundation, either version 3 of the License, or
  *     (at your option) any later version.
- * 
+ *
  *     TDDD56 is distributed in the hope that it will be useful,
  *     but WITHOUT ANY WARRANTY; without even the implied warranty of
  *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *     GNU General Public License for more details.
- * 
+ *
  *     You should have received a copy of the GNU General Public License
  *     along with TDDD56. If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  */
 
 #ifndef DEBUG
@@ -54,6 +54,7 @@ typedef int data_t;
 
 stack_t *stack;
 data_t data;
+data_t popped_data = 9;
 
 void
 test_init()
@@ -65,7 +66,11 @@ void
 test_setup()
 {
   // Allocate and initialize your test stack before each test
+  stack = stack_alloc();
+  stack_init(stack, 10 * sizeof(int));
   data = DATA_VALUE;
+
+
 }
 
 void
@@ -73,6 +78,8 @@ test_teardown()
 {
   // Do not forget to free your stacks after each test
   // to avoid memory leaks as now
+//  free(stack->data);
+//  free(stack);
 }
 
 void
@@ -84,10 +91,22 @@ test_finalize()
 int
 test_push_safe()
 {
+  printf("Preparing to push %d\n", data);
+
+  stack_push(stack, &data);
+  stack_push(stack, &data);
+
+  stack_pop(stack, &popped_data);
+
   // Make sure your stack remains in a good state with expected content when
   // several threads push concurrently to it
 
-  return 0;
+  //int success = *(stack->data - stack->head) != 74;
+
+  printf("Popped data is %d\n", popped_data);
+  //assert(&stack->data + sizeof(data_t) == DATA_VALUE);
+
+  return 0; //success;
 }
 
 int
@@ -153,7 +172,7 @@ test_cas()
 
   counter = 0;
   pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE); 
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
   pthread_mutexattr_init(&mutex_attr);
   pthread_mutex_init(&lock, &mutex_attr);
 
@@ -227,7 +246,7 @@ setbuf(stdout, NULL);
 #else
   // Run performance tests
   int i;
-  stack_measure_arg_t arg[NB_THREADS];  
+  stack_measure_arg_t arg[NB_THREADS];
 
   test_setup();
 
