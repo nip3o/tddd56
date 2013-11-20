@@ -80,6 +80,7 @@ stack_init(stack_t *stack, size_t size)
 
   stack->head = NULL;
   stack->elementSize = size;
+  pthread_mutex_init(&stack->lock, NULL);
 
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
@@ -113,7 +114,6 @@ int
 stack_push(stack_t *stack, void* buffer)
 {
   element_t *newElem = malloc(sizeof(element_t));
-  printf("Pushing %d to %p\n", *((int*)buffer), newElem);
 
   newElem->next = stack->head;
   stack->head = newElem;

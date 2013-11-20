@@ -38,6 +38,7 @@ typedef struct element element_t;
 
 struct stack
 {
+  pthread_mutex_t lock;
   size_t elementSize;
   element_t* head;
 };

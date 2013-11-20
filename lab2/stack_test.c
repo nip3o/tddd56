@@ -20,6 +20,9 @@
  *     along with TDDD56. If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#if MEASURE == 0
+#define DEBUG
+#endif
 
 #ifndef DEBUG
 #define NDEBUG
@@ -53,9 +56,7 @@ typedef int data_t;
 #define DATA_VALUE 5
 
 stack_t *stack;
-data_t data1;
-data_t data2;
-data_t popped_data = 1;
+data_t data;
 
 void
 test_init()
@@ -70,8 +71,7 @@ test_setup()
   stack = stack_alloc();
   stack_init(stack, sizeof(data_t));
 
-  data1 = 8;
-  data2 = 46;
+  data = DATA_VALUE;
 }
 
 void
@@ -79,8 +79,8 @@ test_teardown()
 {
   // Do not forget to free your stacks after each test
   // to avoid memory leaks as now
-//  free(stack->data);
-//  free(stack);
+
+  free(stack);
 }
 
 void
@@ -89,35 +89,131 @@ test_finalize()
   // Destroy properly your test batch
 }
 
+
+int
+test_basic_stack()
+{
+  data_t data1 = 8;
+  data_t data2 = 42;
+  data_t data3 = 13;
+  data_t poppedData = 0;
+
+  stack_push(stack, &data1);
+  stack_push(stack, &data2);
+
+  stack_pop(stack, &poppedData);
+  assert(poppedData == 42);
+
+  stack_push(stack, &data3);
+
+  stack_pop(stack, &poppedData);
+  assert(poppedData == 13);
+
+  stack_pop(stack, &poppedData);
+  assert(poppedData == 8);
+
+  return 1;
+}
+
+struct thread_test_push_args
+{
+  int id;
+};
+typedef struct thread_test_push_args thread_test_push_args_t;
+
+
+void*
+thread_test_push(void* arg)
+{
+  int i;
+  for (i = 0; i < MAX_PUSH_POP; i++) {
+    stack_push(stack, &data);
+  }
+
+  return NULL;
+}
+
 int
 test_push_safe()
 {
-  printf("\n");
-  printf("Pushing %d\n", data1);
-  stack_push(stack, &data1);
-  printf("Pushing %d\n", data2);
-  stack_push(stack, &data2);
-
-  stack_pop(stack, &popped_data);
-  printf("Popped data is %d\n", popped_data);
-  stack_pop(stack, &popped_data);
-  printf("Popped data is %d\n", popped_data);
-
   // Make sure your stack remains in a good state with expected content when
   // several threads push concurrently to it
 
-  //int success = *(stack->data - stack->head) != 74;
+  pthread_attr_t attr;
+  pthread_t thread[NB_THREADS];
+  thread_test_push_args_t args[NB_THREADS];
 
+  int i, success;
 
-  //assert(&stack->data + sizeof(data_t) == DATA_VALUE);
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-  return 0; //success;
+  for (i = 0; i < NB_THREADS; i++)
+    {
+      args[i].id = i;
+      pthread_create(&thread[i], &attr, &thread_test_push, (void*) &args[i]);
+      pthread_join(thread[i], NULL);
+    }
+
+  element_t *head = stack->head;
+  int length = 0;
+
+  while(head) {
+    length++;
+    head = head->next;
+  }
+
+  int expected = (size_t)(NB_THREADS * MAX_PUSH_POP);
+  success = length == expected;
+
+  if (!success)
+  {
+    printf("length is %d, expected %d...", length, expected);
+  }
+
+  return success;
+}
+
+void*
+thread_test_pop(void* arg)
+{
+  int i;
+  for (i = 0; i < MAX_PUSH_POP; i++) {
+    stack_pop(stack, &poppedData);
+    assert(poppedData == DATA_VALUE);
+  }
+
+  return NULL;
 }
 
 int
 test_pop_safe()
 {
   // Same as the test above for parallel pop operation
+  pthread_attr_t attr;
+  pthread_t thread[NB_THREADS];
+  thread_test_push_args_t args[NB_THREADS];
+
+  int i, success;
+
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+  for (i = 0; i < NB_THREADS; i++)
+    {
+      args[i].id = i;
+      pthread_create(&thread[i], &attr, &thread_test_pop, (void*) &args[i]);
+      pthread_join(thread[i], NULL);
+    }
+
+  success = stack->head == NULL;
+
+  if (!success)
+  {
+    printf("head is at %p, expected NULL... ", &stack->head);
+  }
+
+  return success;
 
   return 0;
 }
@@ -243,6 +339,7 @@ setbuf(stdout, NULL);
 
   test_run(test_cas);
 
+  test_run(test_basic_stack);
   test_run(test_push_safe);
   test_run(test_pop_safe);
   test_run(test_aba);
