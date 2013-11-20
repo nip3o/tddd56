@@ -27,10 +27,19 @@
 #ifndef STACK_H
 #define STACK_H
 
+struct element
+{
+  struct element* next;
+  void* data;
+};
+
+typedef struct element element_t;
+
+
 struct stack
 {
-  size_t head;
-  void* data[];
+  size_t elementSize;
+  element_t* head;
 };
 
 typedef struct stack stack_t;

@@ -78,8 +78,8 @@ stack_init(stack_t *stack, size_t size)
   assert(stack != NULL);
   assert(size > 0);
 
-//  stack->data = malloc(size);
-  stack->head = 0;
+  stack->head = NULL;
+  stack->elementSize = size;
 
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
@@ -112,11 +112,15 @@ stack_check(stack_t *stack)
 int
 stack_push(stack_t *stack, void* buffer)
 {
-  printf("Pushing %d to %p\n", *((int*)buffer), &stack->data[stack->head]);
+  element_t *newElem = malloc(sizeof(element_t));
+  printf("Pushing %d to %p\n", *((int*)buffer), newElem);
 
-  stack->data[stack->head++] = buffer;
+  newElem->next = stack->head;
+  stack->head = newElem;
 
-  printf("Head is at %d, %p\n", *((int*)buffer), &stack->data[stack->head]);
+  newElem->data = malloc(stack->elementSize);
+  memcpy(newElem->data, buffer, stack->elementSize);
+
 
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
@@ -133,12 +137,13 @@ stack_push(stack_t *stack, void* buffer)
 int
 stack_pop(stack_t *stack, void* buffer)
 {
-  printf("Popping from %p\n", &stack->data[stack->head -1]);
+  element_t *elem = stack->head;
 
-  memcpy(buffer, stack->data[--stack->head], sizeof(int));
+  memcpy(buffer, elem->data, stack->elementSize);
+  free(elem->data);
 
-  //buffer = stack->data[--stack->head];
-  printf("Buffer value is %d\n", *((int*)buffer));
+  stack->head = elem->next;
+  free(elem);
 
 
 #if NON_BLOCKING == 0

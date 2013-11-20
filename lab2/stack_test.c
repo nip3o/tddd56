@@ -53,8 +53,9 @@ typedef int data_t;
 #define DATA_VALUE 5
 
 stack_t *stack;
-data_t data;
-data_t popped_data = 9;
+data_t data1;
+data_t data2;
+data_t popped_data = 1;
 
 void
 test_init()
@@ -67,10 +68,10 @@ test_setup()
 {
   // Allocate and initialize your test stack before each test
   stack = stack_alloc();
-  stack_init(stack, 10 * sizeof(int));
-  data = DATA_VALUE;
+  stack_init(stack, sizeof(data_t));
 
-
+  data1 = 8;
+  data2 = 46;
 }
 
 void
@@ -91,19 +92,23 @@ test_finalize()
 int
 test_push_safe()
 {
-  printf("Preparing to push %d\n", data);
-
-  stack_push(stack, &data);
-  stack_push(stack, &data);
+  printf("\n");
+  printf("Pushing %d\n", data1);
+  stack_push(stack, &data1);
+  printf("Pushing %d\n", data2);
+  stack_push(stack, &data2);
 
   stack_pop(stack, &popped_data);
+  printf("Popped data is %d\n", popped_data);
+  stack_pop(stack, &popped_data);
+  printf("Popped data is %d\n", popped_data);
 
   // Make sure your stack remains in a good state with expected content when
   // several threads push concurrently to it
 
   //int success = *(stack->data - stack->head) != 74;
 
-  printf("Popped data is %d\n", popped_data);
+
   //assert(&stack->data + sizeof(data_t) == DATA_VALUE);
 
   return 0; //success;
