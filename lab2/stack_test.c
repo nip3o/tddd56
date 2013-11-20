@@ -57,6 +57,7 @@ typedef int data_t;
 
 stack_t *stack;
 data_t data;
+data_t poppedData;
 
 void
 test_init()
@@ -72,6 +73,7 @@ test_setup()
   stack_init(stack, sizeof(data_t));
 
   data = DATA_VALUE;
+  poppedData = 0;
 }
 
 void
@@ -93,10 +95,10 @@ test_finalize()
 int
 test_basic_stack()
 {
+  // Test that the stack works as expected on a single thread
   data_t data1 = 8;
   data_t data2 = 42;
   data_t data3 = 13;
-  data_t poppedData = 0;
 
   stack_push(stack, &data1);
   stack_push(stack, &data2);
@@ -198,6 +200,11 @@ test_pop_safe()
 
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+  // push some elements to pop...
+  for (i = 0; i < MAX_PUSH_POP * NB_THREADS; i++) {
+    stack_push(stack, &data);
+  }
 
   for (i = 0; i < NB_THREADS; i++)
     {

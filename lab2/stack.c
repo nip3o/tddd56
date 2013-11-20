@@ -64,9 +64,9 @@ stack_alloc()
   // Implement a lock_based stack
 #elif NON_BLOCKING == 1
   /*** Optional ***/
-  // Implement a harware CAS-based stack
+  // Implement a software CAS-based stack
 #else
-  // Implement a harware CAS-based stack
+  // Implement a hardware CAS-based stack
 #endif
 
   return res;
@@ -80,15 +80,17 @@ stack_init(stack_t *stack, size_t size)
 
   stack->head = NULL;
   stack->elementSize = size;
-  pthread_mutex_init(&stack->lock, NULL);
+
 
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
+  pthread_mutex_init(&stack->lock, NULL);
+
 #elif NON_BLOCKING == 1
   /*** Optional ***/
-  // Implement a harware CAS-based stack
+  // Implement a software CAS-based stack
 #else
-  // Implement a harware CAS-based stack
+  // Implement a hardware CAS-based stack
 #endif
 
   return 0;
@@ -113,22 +115,24 @@ stack_check(stack_t *stack)
 int
 stack_push(stack_t *stack, void* buffer)
 {
-  element_t *newElem = malloc(sizeof(element_t));
-
-  newElem->next = stack->head;
-  stack->head = newElem;
-
-  newElem->data = malloc(stack->elementSize);
-  memcpy(newElem->data, buffer, stack->elementSize);
-
 
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
+
+  element_t *newElem = malloc(sizeof(element_t));
+  newElem->next = stack->head;
+  newElem->data = malloc(stack->elementSize);
+  memcpy(newElem->data, buffer, stack->elementSize);
+
+  pthread_mutex_lock(&stack->lock);
+    stack->head = newElem;
+  pthread_mutex_unlock(&stack->lock);
+
 #elif NON_BLOCKING == 1
   /*** Optional ***/
-  // Implement a harware CAS-based stack
+  // Implement a software CAS-based stack
 #else
-  // Implement a harware CAS-based stack
+  // Implement a hardware CAS-based stack
 #endif
 
   return 0;
@@ -138,22 +142,26 @@ int
 stack_pop(stack_t *stack, void* buffer)
 {
   element_t *elem = stack->head;
-
   memcpy(buffer, elem->data, stack->elementSize);
-  free(elem->data);
-
-  stack->head = elem->next;
-  free(elem);
 
 
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
+
+  pthread_mutex_lock(&stack->lock);
+    stack->head = elem->next;
+  pthread_mutex_unlock(&stack->lock);
+
 #elif NON_BLOCKING == 1
   /*** Optional ***/
-  // Implement a harware CAS-based stack
+  // Implement a software CAS-based stack
 #else
-  // Implement a harware CAS-based stack
+  // Implement a hardware CAS-based stack
 #endif
+
+
+  free(elem->data);
+  free(elem);
 
   return 0;
 }
