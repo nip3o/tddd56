@@ -179,16 +179,16 @@ stack_pop(stack_t *stack, void* buffer)
 
   // Implement a hardware CAS-based stack
 
-  element_t *old, *elem;
+  element_t *old;
   do
   {
-    elem = stack->head;
-    memcpy(buffer, elem->data, stack->elementSize);
-
     old = stack->head;
-  } while (cas((size_t *)&stack->head, (size_t)old, (size_t)elem->next) != (size_t)old) ;
+  } while (cas((size_t *)&stack->head, (size_t)old, (size_t)old->next) != (size_t)old) ;
 
-  stack->head = elem->next;
+  memcpy(buffer, old->data, stack->elementSize);
+
+  free(old->data);
+  free(old);
 
 #endif
 
