@@ -238,32 +238,62 @@ test_pop_safe()
 // 3 Threads should be enough to raise and detect the ABA problem
 #define ABA_NB_THREADS 3
 
-int a, b, c, shared;
+element_t *elemA, *elemB, *shared, *trash;
 sem_t t0_semaphore, t1_semaphore, t2_semaphore;
 
 int
-stack_pop_unlucky(stack_t *stack, void* buffer)
+stack_push_shared(stack_t *stack, element_t* newElem)
+{
+  element_t* old;
+
+  do
+  {
+    old = stack->head;
+    newElem->next = old;
+  }
+  while (cas((size_t *)&stack->head, (size_t)old, (size_t)newElem) != (size_t)old) ;
+ 
+  return 0;
+}
+
+
+int
+stack_pop_shared(stack_t *stack, element_t** buffer)
 {
   element_t *old;
+
+  do
+  {
+    old = stack->head;
+  } while (cas((size_t *)&stack->head, (size_t)old, (size_t)old->next) != (size_t)old);
+
+  *buffer = old;
+
+  return 0;
+}
+
+
+int
+stack_pop_unlucky(stack_t *stack, element_t** buffer)
+{
+  element_t *old;
+
   do
   {
     old = stack->head;
 
-    printf("old is %p, head is %p\n", old, stack->head);
+    printf("old is %p, head is %p, next is %p\n", old, stack->head, old->next);
 
     // Tell T1 to start
     sem_post(&t1_semaphore);
     // Wait until it is time for T0 to go ahead and ruin everything
     sem_wait(&t0_semaphore);
 
-    printf("old is %p, head is %p\n", old, stack->head);
+    printf("old is %p, head is %p, next is %p\n", old, stack->head, old->next);
   } while (cas((size_t *)&stack->head, (size_t)old, (size_t)old->next) != (size_t)old) ;
 
-  memcpy(buffer, old->data, stack->elementSize);
-
-  free(old->data);
-  free(old);
-
+  *buffer = old;
+  
   return 0;
 }
 
@@ -271,7 +301,7 @@ void*
 thread_aba_t0(void* arg)
 {
   printf("T0 pops A {\n");
-    stack_pop_unlucky(stack, &poppedData);
+    stack_pop_unlucky(stack, &trash);
   printf("} T0\n\n");
 
   return NULL;
@@ -283,14 +313,14 @@ thread_aba_t1(void* arg)
   sem_wait(&t1_semaphore);
 
   printf(" T1 pops A {\n");
-    stack_pop(stack, &shared);
-  printf(" } %p T1\n\n", &shared);
+    stack_pop_shared(stack, &shared);
+  printf(" } %p T1\n\n", shared);
 
   sem_post(&t2_semaphore);
   sem_wait(&t1_semaphore);
 
-  printf(" T1 pushes A %p {\n", &shared);
-    stack_push(stack, &shared);
+  printf(" T1 pushes A %p {\n", shared);
+    stack_push_shared(stack, shared);
   printf(" } T1\n\n");
 
   sem_post(&t0_semaphore);
@@ -303,7 +333,7 @@ thread_aba_t2(void* arg)
   sem_wait(&t2_semaphore);
 
   printf(" T2 pops B {\n");
-    stack_pop(stack, &poppedData);
+    stack_pop_shared(stack, &trash);
   printf(" } T2\n\n");
 
   sem_post(&t1_semaphore);
@@ -322,12 +352,11 @@ test_aba()
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-  // Write here a test for the ABA problem
-  a = 1; b = 2; c = 3;
+  elemA = malloc(sizeof(element_t));
+  elemB = malloc(sizeof(element_t));
 
-//  stack_push(stack, &c);
-  stack_push(stack, &b);
-  stack_push(stack, &a);
+  stack_push_shared(stack, elemB);
+  stack_push_shared(stack, elemA);
 
   sem_init(&t0_semaphore, 0, 0);
   sem_init(&t1_semaphore, 0, 0);
@@ -341,8 +370,8 @@ test_aba()
   pthread_join(t1, NULL);
   pthread_join(t2, NULL);
 
-  stack_pop(stack, &poppedData);
-  printf("Popped %d\n", poppedData);
+  stack_pop_shared(stack, &shared);
+  printf("Popped %p\n", shared);
 
   success = aba_detected;
   return success;
@@ -466,19 +495,34 @@ setbuf(stdout, NULL);
 #else
   // Run performance tests
   int i;
+  pthread_attr_t attr;
+  pthread_t thread[NB_THREADS];
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
   stack_measure_arg_t arg[NB_THREADS];
 
   test_setup();
+
+  // push some elements to have something to pop
+  for (i = 0; i < MAX_PUSH_POP; i++)
+    {
+      stack_push(stack, &data);
+    }
 
   clock_gettime(CLOCK_MONOTONIC, &start);
   for (i = 0; i < NB_THREADS; i++)
     {
       arg[i].id = i;
-      (void)arg[i].id; // Makes the compiler to shut up about unused variable arg
+      
       // Run push-based performance test based on MEASURE token
 #if MEASURE == 1
       clock_gettime(CLOCK_MONOTONIC, &t_start[i]);
-      // Push MAX_PUSH_POP times in parallel
+
+      // Push MAX_PUSH_POP times in parallel  
+      pthread_create(&thread[i], &attr, &thread_test_push, (void*) &args[i]);
+
+      
       clock_gettime(CLOCK_MONOTONIC, &t_stop[i]);
 #else
       // Run pop-based performance test based on MEASURE token
@@ -486,6 +530,13 @@ setbuf(stdout, NULL);
       // Pop MAX_PUSH_POP times in parallel
       clock_gettime(CLOCK_MONOTONIC, &t_stop[i]);
 #endif
+    }
+
+    //// BARRIER...
+
+  for (i = 0; i < NB_THREADS; i++)
+    {
+      pthread_join(thread[i], NULL);
     }
 
   // Wait for all threads to finish
