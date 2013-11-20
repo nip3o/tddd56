@@ -34,6 +34,8 @@
 #include <stdint.h>
 #include <time.h>
 #include <stddef.h>
+#include <stdbool.h>
+#include <semaphore.h>
 
 #include "stack.h"
 #include "non_blocking.h"
@@ -236,11 +238,112 @@ test_pop_safe()
 // 3 Threads should be enough to raise and detect the ABA problem
 #define ABA_NB_THREADS 3
 
+int a, b, c, shared;
+sem_t t0_semaphore, t1_semaphore, t2_semaphore;
+
+int
+stack_pop_unlucky(stack_t *stack, void* buffer)
+{
+  element_t *old;
+  do
+  {
+    old = stack->head;
+
+    printf("old is %p, head is %p\n", old, stack->head);
+
+    // Tell T1 to start
+    sem_post(&t1_semaphore);
+    // Wait until it is time for T0 to go ahead and ruin everything
+    sem_wait(&t0_semaphore);
+
+    printf("old is %p, head is %p\n", old, stack->head);
+  } while (cas((size_t *)&stack->head, (size_t)old, (size_t)old->next) != (size_t)old) ;
+
+  memcpy(buffer, old->data, stack->elementSize);
+
+  free(old->data);
+  free(old);
+
+  return 0;
+}
+
+void*
+thread_aba_t0(void* arg)
+{
+  printf("T0 pops A {\n");
+    stack_pop_unlucky(stack, &poppedData);
+  printf("} T0\n\n");
+
+  return NULL;
+}
+
+void*
+thread_aba_t1(void* arg)
+{
+  sem_wait(&t1_semaphore);
+
+  printf(" T1 pops A {\n");
+    stack_pop(stack, &shared);
+  printf(" } %p T1\n\n", &shared);
+
+  sem_post(&t2_semaphore);
+  sem_wait(&t1_semaphore);
+
+  printf(" T1 pushes A %p {\n", &shared);
+    stack_push(stack, &shared);
+  printf(" } T1\n\n");
+
+  sem_post(&t0_semaphore);
+  return NULL;
+}
+
+void*
+thread_aba_t2(void* arg)
+{
+  sem_wait(&t2_semaphore);
+
+  printf(" T2 pops B {\n");
+    stack_pop(stack, &poppedData);
+  printf(" } T2\n\n");
+
+  sem_post(&t1_semaphore);
+
+  return NULL;
+}
+
+
+
 int
 test_aba()
 {
   int success, aba_detected = 0;
+  pthread_t t0, t1, t2;
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
   // Write here a test for the ABA problem
+  a = 1; b = 2; c = 3;
+
+//  stack_push(stack, &c);
+  stack_push(stack, &b);
+  stack_push(stack, &a);
+
+  sem_init(&t0_semaphore, 0, 0);
+  sem_init(&t1_semaphore, 0, 0);
+  sem_init(&t2_semaphore, 0, 0);
+
+  pthread_create(&t0, &attr, &thread_aba_t0, NULL);
+  pthread_create(&t1, &attr, &thread_aba_t1, NULL);
+  pthread_create(&t2, &attr, &thread_aba_t2, NULL);
+
+  pthread_join(t0, NULL);
+  pthread_join(t1, NULL);
+  pthread_join(t2, NULL);
+
+  stack_pop(stack, &poppedData);
+  printf("Popped %d\n", poppedData);
+
   success = aba_detected;
   return success;
 }
