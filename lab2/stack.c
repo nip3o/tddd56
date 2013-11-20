@@ -117,14 +117,15 @@ stack_push(stack_t *stack, void* buffer)
 {
 
 #if NON_BLOCKING == 0
+
   // Implement a lock_based stack
 
-  element_t *newElem = malloc(sizeof(element_t));
-  newElem->next = stack->head;
-  newElem->data = malloc(stack->elementSize);
-  memcpy(newElem->data, buffer, stack->elementSize);
-
   pthread_mutex_lock(&stack->lock);
+    element_t *newElem = malloc(sizeof(element_t));
+    newElem->next = stack->head;
+    newElem->data = malloc(stack->elementSize);
+    memcpy(newElem->data, buffer, stack->elementSize);
+
     stack->head = newElem;
   pthread_mutex_unlock(&stack->lock);
 
@@ -132,7 +133,22 @@ stack_push(stack_t *stack, void* buffer)
   /*** Optional ***/
   // Implement a software CAS-based stack
 #else
+
   // Implement a hardware CAS-based stack
+
+  element_t *newElem = malloc(sizeof(element_t));
+  newElem->next = stack->head;
+  newElem->data = malloc(stack->elementSize);
+  memcpy(newElem->data, buffer, stack->elementSize);
+
+  element_t *old;
+  do
+  {
+    old = stack->head;
+    newElem->next = old;
+  }
+  while (cas((size_t *)&stack->head, (size_t)old, (size_t)newElem) != (size_t)old) ;
+  stack->head = newElem;
 #endif
 
   return 0;
@@ -141,27 +157,39 @@ stack_push(stack_t *stack, void* buffer)
 int
 stack_pop(stack_t *stack, void* buffer)
 {
-  element_t *elem = stack->head;
-  memcpy(buffer, elem->data, stack->elementSize);
-
 
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
 
   pthread_mutex_lock(&stack->lock);
+    element_t *elem = stack->head;
+    memcpy(buffer, elem->data, stack->elementSize);
+
     stack->head = elem->next;
+
+    free(elem->data);
+    free(elem);
   pthread_mutex_unlock(&stack->lock);
+
 
 #elif NON_BLOCKING == 1
   /*** Optional ***/
   // Implement a software CAS-based stack
 #else
+
   // Implement a hardware CAS-based stack
+  element_t *elem = stack->head;
+  memcpy(buffer, elem->data, stack->elementSize);
+
+  element_t *old;
+  do
+  {
+    old = stack->head;
+  } while (cas((size_t *)&stack->head, (size_t)old, (size_t)elem->next) != (size_t)old) ;
+
+  stack->head = elem->next;
+
 #endif
-
-
-  free(elem->data);
-  free(elem);
 
   return 0;
 }

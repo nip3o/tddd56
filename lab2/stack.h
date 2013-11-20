@@ -38,7 +38,10 @@ typedef struct element element_t;
 
 struct stack
 {
+#if NON_BLOCKING == 0
   pthread_mutex_t lock;
+#endif
+
   size_t elementSize;
   element_t* head;
 };

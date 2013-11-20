@@ -154,6 +154,10 @@ test_push_safe()
     {
       args[i].id = i;
       pthread_create(&thread[i], &attr, &thread_test_push, (void*) &args[i]);
+    }
+
+  for (i = 0; i < NB_THREADS; i++)
+    {
       pthread_join(thread[i], NULL);
     }
 
@@ -201,15 +205,19 @@ test_pop_safe()
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-  // push some elements to pop...
-  for (i = 0; i < MAX_PUSH_POP * NB_THREADS; i++) {
-    stack_push(stack, &data);
-  }
+  // push some elements for us to pop...
+  for (i = 0; i < MAX_PUSH_POP * NB_THREADS; i++)
+    {
+      stack_push(stack, &data);
+    }
 
   for (i = 0; i < NB_THREADS; i++)
     {
       args[i].id = i;
       pthread_create(&thread[i], &attr, &thread_test_pop, (void*) &args[i]);
+    }
+  for (i = 0; i < NB_THREADS; i++)
+    {
       pthread_join(thread[i], NULL);
     }
 
