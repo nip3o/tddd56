@@ -137,18 +137,18 @@ stack_push(stack_t *stack, void* buffer)
   // Implement a hardware CAS-based stack
 
   element_t *newElem = malloc(sizeof(element_t));
-  newElem->next = stack->head;
+  element_t* old;
+
   newElem->data = malloc(stack->elementSize);
   memcpy(newElem->data, buffer, stack->elementSize);
 
-  element_t *old;
   do
   {
     old = stack->head;
     newElem->next = old;
   }
   while (cas((size_t *)&stack->head, (size_t)old, (size_t)newElem) != (size_t)old) ;
-  stack->head = newElem;
+  
 #endif
 
   return 0;
@@ -178,12 +178,13 @@ stack_pop(stack_t *stack, void* buffer)
 #else
 
   // Implement a hardware CAS-based stack
-  element_t *elem = stack->head;
-  memcpy(buffer, elem->data, stack->elementSize);
 
-  element_t *old;
+  element_t *old, *elem;
   do
   {
+    elem = stack->head;
+    memcpy(buffer, elem->data, stack->elementSize);
+
     old = stack->head;
   } while (cas((size_t *)&stack->head, (size_t)old, (size_t)elem->next) != (size_t)old) ;
 
@@ -193,4 +194,3 @@ stack_pop(stack_t *stack, void* buffer)
 
   return 0;
 }
-
