@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include "disable.h"
 #include <stdlib.h>
+ #include <pthread.h>
 
 #ifndef DEBUG
 #define NDEBUG
@@ -35,17 +36,65 @@
 #include "simple_quicksort.h"
 
 int sequentialMergesort(value*, int);
+void parallelMergesort(value*, int);
 void sequentialMerge(value*, int, int);
 
 int
 sort(struct array * array)
 {
+	printf("Begin sort\n");
 	//simple_quicksort_ascending(array);
-
-	sequentialMergesort(array->data, array->length);
+	//sequentialMergesort(array->data, array->length);
+	parallelMergesort(array->data, array->length);
 	return 0;
 }
 
+struct sorting_args {
+	value* array;
+	int length;
+};
+
+void *
+run_thread(void* arg) {
+	struct sorting_args * args = (struct sorting_args*)arg;
+
+	printf("Sorting...%d\n", args->length);
+	sequentialMergesort(args->array, args->length);
+
+	pthread_exit(NULL);
+}
+
+void parallelMergesort(value *array, int n) {
+	if(n==1) {
+		return;
+	}
+
+	printf("Begin sort\n");
+
+	pthread_t t1, t2;
+
+	struct sorting_args arg1, arg2;
+	int middle = n / 2;
+
+	arg1.array = array;
+	arg1.length = middle;
+
+	printf("Starting threads\n");
+
+	pthread_create(&t1, NULL, &run_thread, &arg1);
+
+	arg2.array = array + middle;
+	arg2.length = n - middle;
+
+	pthread_create(&t2, NULL, &run_thread, &arg2);
+
+	printf("Joining threads\n");
+
+	pthread_join(t1, NULL);
+	pthread_join(t2, NULL);
+
+	sequentialMerge(array, middle, n);
+}
 
 int sequentialMergesort(value *array, int n) {
 	if(n==1) {
