@@ -1,0 +1,23 @@
+[INFO] Will run 20 instances
+[INFO] Instance 1/20: input_size=100000 input_set=0 variants=1 nb_threads=0 try=1... OK. 0 seconds (0 minutes or 0 hours).
+[INFO] Instance 2/20: input_size=100000 input_set=0 variants=1 nb_threads=0 try=2... OK. 0 seconds (0 minutes or 0 hours).
+[INFO] Instance 3/20: input_size=100000 input_set=0 variants=1 nb_threads=1 try=1... OK. 0 seconds (0 minutes or 0 hours).
+[INFO] Instance 4/20: input_size=100000 input_set=0 variants=1 nb_threads=1 try=2... OK. 0 seconds (0 minutes or 0 hours).
+[INFO] Instance 5/20: input_size=100000 input_set=0 variants=1 nb_threads=2 try=1... OK. 0 seconds (0 minutes or 0 hours).
+[INFO] Instance 6/20: input_size=100000 input_set=0 variants=1 nb_threads=2 try=2... OK. 0 seconds (0 minutes or 0 hours).
+[INFO] Instance 7/20: input_size=100000 input_set=0 variants=1 nb_threads=3 try=1... OK. 0 seconds (0 minutes or 0 hours).
+[INFO] Instance 8/20: input_size=100000 input_set=0 variants=1 nb_threads=3 try=2... OK. 0 seconds (0 minutes or 0 hours).
+[INFO] Instance 9/20: input_size=100000 input_set=0 variants=1 nb_threads=4 try=1... OK. 1 seconds (0 minutes or 0 hours).
+[INFO] Instance 10/20: input_size=100000 input_set=0 variants=1 nb_threads=4 try=2... OK. 0 seconds (0 minutes or 0 hours).
+[INFO] Instance 11/20: input_size=10000000 input_set=0 variants=1 nb_threads=0 try=1... OK. 9 seconds (0 minutes or 0 hours).
+[INFO] Instance 12/20: input_size=10000000 input_set=0 variants=1 nb_threads=0 try=2... OK. 10 seconds (0 minutes or 0 hours).
+[INFO] Instance 13/20: input_size=10000000 input_set=0 variants=1 nb_threads=1 try=1... OK. 8 seconds (0 minutes or 0 hours).
+[INFO] Instance 14/20: input_size=10000000 input_set=0 variants=1 nb_threads=1 try=2... OK. 7 seconds (0 minutes or 0 hours).
+[INFO] Instance 15/20: input_size=10000000 input_set=0 variants=1 nb_threads=2 try=1... OK. 7 seconds (0 minutes or 0 hours).
+[INFO] Instance 16/20: input_size=10000000 input_set=0 variants=1 nb_threads=2 try=2... OK. 6 seconds (0 minutes or 0 hours).
+[INFO] Instance 17/20: input_size=10000000 input_set=0 variants=1 nb_threads=3 try=1... OK. 6 seconds (0 minutes or 0 hours).
+[INFO] Instance 18/20: input_size=10000000 input_set=0 variants=1 nb_threads=3 try=2... OK. 6 seconds (0 minutes or 0 hours).
+[INFO] Instance 19/20: input_size=10000000 input_set=0 variants=1 nb_threads=4 try=1... OK. 6 seconds (0 minutes or 0 hours).
+[INFO] Instance 20/20: input_size=10000000 input_set=0 variants=1 nb_threads=4 try=2... OK. 7 seconds (0 minutes or 0 hours).
+[INFO] Success. Instances took 73 seconds (1 minutes or 0 hours) to run, or 3 seconds per instance run (0 minutes or 0 hours).
+[INFO] Merging all results of the same experiment together

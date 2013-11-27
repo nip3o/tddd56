@@ -38,6 +38,11 @@
 int sequentialMergesort(value*, int);
 void parallelMergesort(value*, int);
 void sequentialMerge(value*, int, int);
+void *parallel_thread(void*);
+void parallel2(value*, int);
+
+pthread_mutex_t mutex;
+int thread_count;
 
 int
 sort(struct array * array)
@@ -48,7 +53,8 @@ sort(struct array * array)
 	} else if (NB_THREADS == 1) {
 		sequentialMergesort(array->data, array->length);
 	} else {
-		parallelMergesort(array->data, array->length);
+		parallel2(array->data, array->length);
+		//parallelMergesort(array->data, array->length);
 	}
 
 	return 0;
@@ -67,6 +73,47 @@ run_thread(void* arg) {
 	sequentialMergesort(args->array, args->length);
 
 	pthread_exit(NULL);
+}
+
+void parallel2(value *array, int n) {
+	pthread_mutex_init(&mutex, NULL);
+    thread_count = 1;
+
+    struct sorting_args arg;
+    arg.array = array;
+	arg.length = n;
+
+    parallel_thread(&arg);
+}
+
+void *
+parallel_thread(void* arg) {
+	struct sorting_args * args = (struct sorting_args*)arg;
+	if (args->length == 1)
+		pthread_exit(NULL);
+	/* Critical Section */
+	pthread_mutex_lock(&mutex);
+    int count = thread_count++;
+    pthread_mutex_unlock(&mutex);
+
+    int middle = args->length / 2;
+
+    if (count < NB_THREADS){
+    	struct sorting_args t_arg;
+    	pthread_t t;
+
+		t_arg.array = args->array + middle;
+		t_arg.length = args->length - middle;
+
+    	pthread_create(&t, NULL, &parallel_thread, &t_arg);
+    	sequentialMergesort(args->array, middle);
+    	pthread_join(t, NULL);
+    } else {
+    	sequentialMergesort(args->array, args->length);
+    }
+
+    sequentialMerge(args->array, middle, args->length);
+    return 0;
 }
 
 void parallelMergesort(value *array, int n) {
