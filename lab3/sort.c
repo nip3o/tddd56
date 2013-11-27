@@ -43,9 +43,14 @@ int
 sort(struct array * array)
 {
 	printf("Begin sort\n");
-	//simple_quicksort_ascending(array);
-	//sequentialMergesort(array->data, array->length);
-	parallelMergesort(array->data, array->length);
+	if (NB_THREADS == 0) {
+		simple_quicksort_ascending(array);
+	} else if (NB_THREADS == 1) {
+		sequentialMergesort(array->data, array->length);
+	} else {
+		parallelMergesort(array->data, array->length);
+	}
+
 	return 0;
 }
 
