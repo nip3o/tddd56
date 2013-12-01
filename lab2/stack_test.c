@@ -130,7 +130,7 @@ void*
 thread_test_push(void* arg)
 {
   int i;
-  for (i = 0; i < MAX_PUSH_POP; i++) {
+  for (i = 0; i < MAX_PUSH_POP/NB_THREADS; i++) {
     stack_push(stack, &data);
   }
 
@@ -186,7 +186,7 @@ void*
 thread_test_pop(void* arg)
 {
   int i;
-  for (i = 0; i < MAX_PUSH_POP; i++) {
+  for (i = 0; i < MAX_PUSH_POP/NB_THREADS; i++) {
     stack_pop(stack, &poppedData);
     assert(poppedData == DATA_VALUE);
   }
@@ -495,7 +495,7 @@ setbuf(stdout, NULL);
   test_finalize();
 #else
   // Run performance tests
-  int i;
+  int i, j;
   pthread_attr_t attr;
   pthread_t thread[NB_THREADS];
   pthread_attr_init(&attr);
@@ -511,6 +511,13 @@ setbuf(stdout, NULL);
       stack_push(stack, &data);
     }
 
+
+#if MEASURE == 2
+    for (j = 0; j < MAX_PUSH_POP; j++) {
+      stack_push(stack, &data);
+    }
+#endif
+
   clock_gettime(CLOCK_MONOTONIC, &start);
   for (i = 0; i < NB_THREADS; i++)
     {
@@ -521,13 +528,16 @@ setbuf(stdout, NULL);
       clock_gettime(CLOCK_MONOTONIC, &t_start[i]);
 
       // Push MAX_PUSH_POP times in parallel  
-      pthread_create(&thread[i], &attr, &thread_test_push, (void*) &args[i]);
+      pthread_create(&thread[i], &attr, &thread_test_push, (void*) &arg[i]);
 
-      
       clock_gettime(CLOCK_MONOTONIC, &t_stop[i]);
 #else
+
       // Run pop-based performance test based on MEASURE token
       clock_gettime(CLOCK_MONOTONIC, &t_start[i]);
+
+      pthread_create(&thread[i], &attr, &thread_test_pop, (void*) &arg[i]);
+
       // Pop MAX_PUSH_POP times in parallel
       clock_gettime(CLOCK_MONOTONIC, &t_stop[i]);
 #endif

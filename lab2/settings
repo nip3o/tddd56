@@ -25,3 +25,6 @@ ext=.m
 
 HEADER="function x = data()\\nx = ["
 FOOTNOTE="];\\nend"
+
+failed_begin="==== Failed run ===="
+failed_end="--------------------"
