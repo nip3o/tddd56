@@ -43,10 +43,12 @@ void parallel2(value*, int);
 
 pthread_mutex_t mutex;
 int thread_count;
+int ARRAY_SIZE;
 
 int
 sort(struct array * array)
 {
+    printf("Begin sort\n");
     if (NB_THREADS == 0) {
         simple_quicksort_ascending(array);
     } else if (NB_THREADS == 1) {
@@ -80,6 +82,7 @@ void parallel2(value *array, int n) {
     struct sorting_args arg;
     arg.array = array;
     arg.length = n;
+    ARRAY_SIZE = n;
 
     parallel_thread(&arg);
 }
@@ -88,34 +91,42 @@ void *
 parallel_thread(void* arg) {
     struct sorting_args * args = (struct sorting_args*)arg;
     if (args->length == 1)
-        pthread_exit(NULL);
+        return 0;
     
     int create = 0;
-    /* Critical Section */
-    pthread_mutex_lock(&mutex);
-    if (thread_count < NB_THREADS) {
-        thread_count++;
-        create = 1;
+    if (args->length >= ARRAY_SIZE / 2) {
+        /* Critical Section */
+        pthread_mutex_lock(&mutex);
+        if (thread_count < NB_THREADS) {
+            thread_count++;
+            create = 1;
+        }
+        pthread_mutex_unlock(&mutex);
     }
-    pthread_mutex_unlock(&mutex);
 
     int middle = args->length / 2;
 
     if (create == 1){
-        struct sorting_args t_arg;
+        struct sorting_args t_arg, t_arg2;
         pthread_t t;
 
         t_arg.array = args->array + middle;
         t_arg.length = args->length - middle;
 
+        t_arg2.array = args->array;
+        t_arg2.length = middle;
+
         pthread_create(&t, NULL, &parallel_thread, &t_arg);
-        sequentialMergesort(args->array, middle);
+        printf("Creating thread %d\n", t_arg.length);
+        //sequentialMergesort(args->array, middle);
+        parallel_thread(&t_arg2);
+
         pthread_join(t, NULL);
 
         /* Critical Section */
-        pthread_mutex_lock(&mutex);
-        thread_count--;
-        pthread_mutex_unlock(&mutex);
+        //pthread_mutex_lock(&mutex);
+        //thread_count--;
+        //pthread_mutex_unlock(&mutex);
 
     } else {
         sequentialMergesort(args->array, args->length);
