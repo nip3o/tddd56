@@ -277,10 +277,12 @@ int
 stack_pop_unlucky(stack_t *stack, element_t** buffer)
 {
   element_t *old;
+  element_t *old_next = malloc(sizeof(element_t*));
 
   do
   {
     old = stack->head;
+    memcpy(old_next, old->next, sizeof(element_t*));
 
     printf("old is %p, head is %p, next is %p\n", old, stack->head, old->next);
 
@@ -290,7 +292,7 @@ stack_pop_unlucky(stack_t *stack, element_t** buffer)
     sem_wait(&t0_semaphore);
 
     printf("old is %p, head is %p, next is %p\n", old, stack->head, old->next);
-  } while (cas((size_t *)&stack->head, (size_t)old, (size_t)old->next) != (size_t)old) ;
+  } while (cas((size_t *)&stack->head, (size_t)old, (size_t)old_next) != (size_t)old) ;
 
   *buffer = old;
   
@@ -370,8 +372,7 @@ test_aba()
   pthread_join(t1, NULL);
   pthread_join(t2, NULL);
 
-  stack_pop_shared(stack, &shared);
-  printf("Popped %p\n", shared);
+  aba_detected = (stack->head != NULL);
 
   success = aba_detected;
   return success;
