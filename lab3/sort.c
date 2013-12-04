@@ -5,20 +5,20 @@
  *  Copyright 2011 Nicolas Melot
  *
  * This file is part of TDDD56.
- * 
+ *
  *     TDDD56 is free software: you can redistribute it and/or modify
  *     it under the terms of the GNU General Public License as published by
  *     the Free Software Foundation, either version 3 of the License, or
  *     (at your option) any later version.
- * 
+ *
  *     TDDD56 is distributed in the hope that it will be useful,
  *     but WITHOUT ANY WARRANTY; without even the implied warranty of
  *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *     GNU General Public License for more details.
- * 
+ *
  *     You should have received a copy of the GNU General Public License
  *     along with TDDD56. If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  */
 
 // Do not touch or move these lines
@@ -39,7 +39,6 @@ int sequentialMergesort(value*, int);
 void parallelMergesort(value*, int);
 void sequentialMerge(value*, int, int);
 void *parallel_thread(void*);
-void parallel2(value*, int);
 
 pthread_mutex_t mutex;
 int thread_count;
@@ -54,8 +53,7 @@ sort(struct array * array)
     } else if (NB_THREADS == 1) {
         sequentialMergesort(array->data, array->length);
     } else {
-        parallel2(array->data, array->length);
-        //parallelMergesort(array->data, array->length);
+        parallelMergesort(array->data, array->length);
     }
 
     return 0;
@@ -75,7 +73,7 @@ run_thread(void* arg) {
     pthread_exit(NULL);
 }
 
-void parallel2(value *array, int n) {
+void parallelMergesort(value *array, int n) {
     pthread_mutex_init(&mutex, NULL);
     thread_count = 1;
 
@@ -92,7 +90,7 @@ parallel_thread(void* arg) {
     struct sorting_args * args = (struct sorting_args*)arg;
     if (args->length == 1)
         return 0;
-    
+
     int create = 0;
     if (args->length >= ARRAY_SIZE / 2) {
         /* Critical Section */
@@ -118,15 +116,9 @@ parallel_thread(void* arg) {
 
         pthread_create(&t, NULL, &parallel_thread, &t_arg);
         printf("Creating thread %d\n", t_arg.length);
-        //sequentialMergesort(args->array, middle);
         parallel_thread(&t_arg2);
 
         pthread_join(t, NULL);
-
-        /* Critical Section */
-        //pthread_mutex_lock(&mutex);
-        //thread_count--;
-        //pthread_mutex_unlock(&mutex);
 
     } else {
         sequentialMergesort(args->array, args->length);
@@ -136,31 +128,6 @@ parallel_thread(void* arg) {
     return 0;
 }
 
-void parallelMergesort(value *array, int n) {
-    if(n==1) {
-        return;
-    }
-
-    pthread_t t1, t2;
-
-    struct sorting_args arg1, arg2;
-    int middle = n / 2;
-
-    arg1.array = array;
-    arg1.length = middle;
-
-    pthread_create(&t1, NULL, &run_thread, &arg1);
-
-    arg2.array = array + middle;
-    arg2.length = n - middle;
-
-    pthread_create(&t2, NULL, &run_thread, &arg2);
-
-    pthread_join(t1, NULL);
-    pthread_join(t2, NULL);
-
-    sequentialMerge(array, middle, n);
-}
 
 int sequentialMergesort(value *array, int n) {
     if(n==1) {
