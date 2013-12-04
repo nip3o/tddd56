@@ -3,8 +3,8 @@
 
 #include <stdio.h>
 
-const int GRIDSIZE = 1;
-const int BLOCKSIZE = 16;
+const int GRIDSIZE = 1000;
+const int BLOCKSIZE = 64;
 
 
 __global__
@@ -68,7 +68,7 @@ int main()
     float theTime;
     cudaEventElapsedTime(&theTime, start, stop);
 
-    printf("Things took %f ms\n", theTime);
+    printf("Thingss took %f ms\n", theTime);
 
 
     // for (int i = 0; i < N; i++) {

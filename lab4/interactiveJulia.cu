@@ -53,7 +53,7 @@ __device__ int julia( int x, int y, float r, float im)
     const float scale = 1.5;
     float jx = scale * (float)(DIM/2 - x)/(DIM/2);
     float jy = scale * (float)(DIM/2 - y)/(DIM/2);
-
+    
 //    cuComplex c(-0.8, 0.156);
     cuComplex c(r, im);
     cuComplex a(jx, jy);
@@ -85,11 +85,11 @@ __global__ void kernel( unsigned char *ptr, float r, float im)
 }
 
 float theReal, theImag;
+unsigned char *dev_bitmap;
 
 // Compute CUDA kernel and display image
 void Draw()
 {
-	unsigned char *dev_bitmap;
 	cudaEvent_t start, stop;
 
     cudaEventCreate(&start);
@@ -97,14 +97,12 @@ void Draw()
 
     cudaEventRecord(start, 0);
 
-	cudaMalloc( &dev_bitmap, gImageWidth*gImageHeight*4 );
+	dim3	grid(DIM, DIM);
+    dim3    block(1, 1);
 
-	dim3	grid(DIM,DIM);
-	kernel<<<grid,1>>>( dev_bitmap, theReal, theImag);
+	kernel<<<grid,block>>>( dev_bitmap, theReal, theImag);
 	cudaThreadSynchronize();
 	cudaMemcpy( pixels, dev_bitmap, gImageWidth*gImageHeight*4, cudaMemcpyDeviceToHost );
-	
-	cudaFree( dev_bitmap );
 
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
@@ -125,7 +123,7 @@ void MouseMovedProc(int x, int y)
 {
 	theReal = -0.5 + (float)(x-400) / 500.0;
 	theImag = -0.5 + (float)(y-400) / 500.0;
-	printf("real = %f, imag = %f\n", theReal, theImag);
+	//printf("real = %f, imag = %f\n", theReal, theImag);
 	glutPostRedisplay ();
 }
 
@@ -141,5 +139,7 @@ int main( int argc, char** argv)
 	
 	initBitmap(DIM, DIM);
 	
+    cudaMalloc( &dev_bitmap, gImageWidth*gImageHeight*4 );
 	glutMainLoop();
+    cudaFree( dev_bitmap );
 }
