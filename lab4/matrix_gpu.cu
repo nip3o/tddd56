@@ -22,9 +22,12 @@ void multiply(float *a, float *b, float *c, int N) {
 
 int main()
 {
-    const int N = 16;  // matrix size
-
+    const int N = 1024;  // matrix size
     const int size = N*N*sizeof(float);
+
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
 
     float *a = new float[N*N];
     float *b = new float[N*N];
@@ -49,16 +52,29 @@ int main()
     dim3 dimBlock( BLOCKSIZE, BLOCKSIZE );
     dim3 dimGrid( GRIDSIZE, GRIDSIZE );
 
+    
+    cudaEventRecord(start, 0);
+
+
     multiply<<<dimGrid, dimBlock>>>(a_gpu, b_gpu, c_gpu, N);
     cudaThreadSynchronize();
 
     cudaMemcpy( c, c_gpu, size, cudaMemcpyDeviceToHost ); 
 
 
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            printf("%0.2f ", c[i+j*N]);
-        }
-        printf("\n");
-    }
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+
+    float theTime;
+    cudaEventElapsedTime(&theTime, start, stop);
+
+    printf("Things took %f ms\n", theTime);
+
+
+    // for (int i = 0; i < N; i++) {
+    //     for (int j = 0; j < N; j++) {
+    //         printf("%0.2f ", c[i+j*N]);
+    //     }
+    //     printf("\n");
+    // }
 }

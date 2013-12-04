@@ -2,6 +2,7 @@
 // gcc matrix_cpu.c -o matrix_cpu -std=c99
 
 #include <stdio.h>
+#include "milli.h"
 
 void add_matrix(float *a, float *b, float *c, int N)
 {
@@ -17,11 +18,11 @@ void add_matrix(float *a, float *b, float *c, int N)
 
 int main()
 {
-	const int N = 16;
+	const int N = 1024;
 
-	float a[N*N];
-	float b[N*N];
-	float c[N*N];
+    float *a = new float[N*N];
+    float *b = new float[N*N];
+    float *c = new float[N*N];
 
 	for (int i = 0; i < N; i++)
 		for (int j = 0; j < N; j++)
@@ -30,14 +31,18 @@ int main()
 			b[i+j*N] = (float)j / N;
 		}
 	
+	ResetMilli();
 	add_matrix(a, b, c, N);
-	
-	for (int i = 0; i < N; i++)
-	{
-		for (int j = 0; j < N; j++)
-		{
-			printf("%0.2f ", c[i+j*N]);
-		}
-		printf("\n");
-	}
+	float ms = GetMilliseconds();
+
+	printf("Things took %f ms\n", ms);
+
+	// for (int i = 0; i < N; i++)
+	// {
+	// 	for (int j = 0; j < N; j++)
+	// 	{
+	// 		printf("%0.2f ", c[i+j*N]);
+	// 	}
+	// 	printf("\n");
+	// }
 }
