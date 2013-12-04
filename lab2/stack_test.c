@@ -130,7 +130,7 @@ void*
 thread_test_push(void* arg)
 {
   int i;
-  for (i = 0; i < MAX_PUSH_POP/NB_THREADS; i++) {
+  for (i = 0; i < MAX_PUSH_POP; i++) {
     stack_push(stack, &data);
   }
 
@@ -186,7 +186,7 @@ void*
 thread_test_pop(void* arg)
 {
   int i;
-  for (i = 0; i < MAX_PUSH_POP/NB_THREADS; i++) {
+  for (i = 0; i < MAX_PUSH_POP; i++) {
     stack_pop(stack, &poppedData);
     assert(poppedData == DATA_VALUE);
   }

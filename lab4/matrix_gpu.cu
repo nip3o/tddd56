@@ -1,34 +1,29 @@
 // Matrix addition, GPU version
+// nvcc matrix_gpu.cu -L /usr/local/cuda/lib -lcudart -arch=sm_20 -o matrix_gpu 
 
 #include <stdio.h>
-
-const int N = 16;  // matrix size
 
 const int GRIDSIZE = 1;
 const int BLOCKSIZE = 16;
 
 
 __global__
-void multiply(float *a, float *b, float *c) {
-    int x = (blockIdx.x * blockDim.x) + threadIdx.x;
-    int y = (blockIdx.y * blockDim.y) + threadIdx.y;
-    c[x*sizeof(float) + y] = 76;//a[index] + b[index];
-}
-
-// void add_matrix(float *a, float *b, float *c, int N)
-// {
-//     int index;
+void multiply(float *a, float *b, float *c, int N) {
+    int row = (blockIdx.x * blockDim.x) + threadIdx.x;
+    int col = (blockIdx.y * blockDim.y) + threadIdx.y;
     
-//     for (int i = 0; i < N; i++) {
-//         for (int j = 0; j < N; j++) {
-//             index = i + j*N;
-//             c[index] = a[index] + b[index];
-//         }
-//     }
-// }
+    float sum = 0;
+    //for (int i = 0; i < N; i++) {
+    //    sum = sum + (a[row * N + i] * b[i * N + col]);
+    //}
+    sum = a[row*N + col] + b[row*N + col];
+    c[N*row + col] = sum;
+}
 
 int main()
 {
+    const int N = 16;  // matrix size
+
     const int size = N*N*sizeof(float);
 
     float *a = new float[N*N];
@@ -54,14 +49,12 @@ int main()
     dim3 dimBlock( BLOCKSIZE, BLOCKSIZE );
     dim3 dimGrid( GRIDSIZE, GRIDSIZE );
 
-    multiply<<<dimGrid, dimBlock>>>(a_gpu, b_gpu, c_gpu);
+    multiply<<<dimGrid, dimBlock>>>(a_gpu, b_gpu, c_gpu, N);
     cudaThreadSynchronize();
 
     cudaMemcpy( c, c_gpu, size, cudaMemcpyDeviceToHost ); 
 
-    //add_matrix(a, b, c, N);
 
-    
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
             printf("%0.2f ", c[i+j*N]);
