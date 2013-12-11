@@ -8,22 +8,33 @@
 	#include <GL/glut.h>
 #endif
 
+#define BLOCK_DIM 16
+#define IMAGE_DIM 512
+#define IMAGE_SIZE 3*((4 + IMAGE_DIM / BLOCK_DIM) * (4 + IMAGE_DIM / BLOCK_DIM))
+
 __global__ void filter(unsigned char *image, unsigned char *out, int n, int m)
 {
+	__shared__ unsigned char shared[IMAGE_SIZE];
+
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	int shared_i = threadIdx.x;
+	int shared_j = threadIdx.y;
+
 	int sumx, sumy, sumz, k, l;
 
-// printf is OK under --device-emulation
-//	printf("%d %d %d %d\n", i, j, n, m);
+	shared[(shared_i * blockDim.x + shared_j)*3+0] = image[(i * n + j)*3+0];
+	shared[(shared_i * blockDim.x + shared_j)*3+1] = image[(i * n + j)*3+1];
+	shared[(shared_i * blockDim.x + shared_j)*3+2] = image[(i * n + j)*3+2];
 
-	if (j < n && i < m)
-	{
-		out[(i*n+j)*3+0] = image[(i*n+j)*3+0];
-		out[(i*n+j)*3+1] = image[(i*n+j)*3+1];
-		out[(i*n+j)*3+2] = image[(i*n+j)*3+2];
-	}
+	__syncthreads();
+
+// printf is OK under --device-emulation
 	
+
+//		printf("%d %d %d %d\n", i, j, n, m);
+
+
 	if (i > 1 && i < m-2 && j > 1 && j < n-2)
 		{
 			// Filter kernel
@@ -31,13 +42,24 @@ __global__ void filter(unsigned char *image, unsigned char *out, int n, int m)
 			for(k=-2;k<3;k++)
 				for(l=-2;l<3;l++)
 				{
-					sumx += image[((i+k)*n+(j+l))*3+0];
-					sumy += image[((i+k)*n+(j+l))*3+1];
-					sumz += image[((i+k)*n+(j+l))*3+2];
+					if (shared_i > 1 && shared_i < blockDim.y-2 && shared_j > 1 && shared_j < blockDim.x-2) {
+						sumx += shared[((shared_i+k)*blockDim.x + (shared_j+l))*3+0];
+						sumy += shared[((shared_i+k)*blockDim.x + (shared_j+l))*3+1];
+						sumz += shared[((shared_i+k)*blockDim.x + (shared_j+l))*3+2];
+					} else {
+						sumx += image[((i+k)*n+(j+l))*3+0];
+						sumy += image[((i+k)*n+(j+l))*3+1];
+						sumz += image[((i+k)*n+(j+l))*3+2];
+					}
+
 				}
 			out[(i*n+j)*3+0] = sumx/25;
 			out[(i*n+j)*3+1] = sumy/25;
 			out[(i*n+j)*3+2] = sumz/25;
+		} else {
+			out[(i*n+j)*3+0] = shared[(shared_i * blockDim.x + shared_j)*3+0];
+			out[(i*n+j)*3+1] = shared[(shared_i * blockDim.x + shared_j)*3+1];
+			out[(i*n+j)*3+2] = shared[(shared_i * blockDim.x + shared_j)*3+2];	
 		}
 }
 
@@ -48,6 +70,11 @@ void Draw()
 	unsigned char *image, *out;
 	int n, m;
 	unsigned char *dev_image, *dev_out;
+
+	struct cudaDeviceProp prop;
+	cudaGetDeviceProperties(&prop, 0);
+
+	printf("Memory per block: %d B\n", prop.sharedMemPerBlock);
 	
 	image = readppm("maskros512.ppm", &n, &m);
 	out = (unsigned char*) malloc(n*m*3);
@@ -78,8 +105,7 @@ void Draw()
     float theTime;
     cudaEventElapsedTime(&theTime, start, stop);
     printf("Things took %f ms\n", theTime);
-
-
+    
 
 	cudaFree(dev_image);
 	cudaFree(dev_out);

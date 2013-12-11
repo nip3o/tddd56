@@ -97,8 +97,8 @@ void Draw()
 
     cudaEventRecord(start, 0);
 
-	dim3	grid(DIM, DIM);
-    dim3    block(1, 1);
+	dim3	grid(512, 512);
+    dim3    block(32, 32);
 
 	kernel<<<grid,block>>>( dev_bitmap, theReal, theImag);
 	cudaThreadSynchronize();

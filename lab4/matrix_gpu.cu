@@ -3,8 +3,8 @@
 
 #include <stdio.h>
 
-const int GRIDSIZE = 1000;
 const int BLOCKSIZE = 64;
+const int GRIDSIZE = 16;
 
 
 __global__
@@ -13,9 +13,7 @@ void multiply(float *a, float *b, float *c, int N) {
     int col = (blockIdx.y * blockDim.y) + threadIdx.y;
     
     float sum = 0;
-    //for (int i = 0; i < N; i++) {
-    //    sum = sum + (a[row * N + i] * b[i * N + col]);
-    //}
+
     sum = a[row*N + col] + b[row*N + col];
     c[N*row + col] = sum;
 }
@@ -68,7 +66,7 @@ int main()
     float theTime;
     cudaEventElapsedTime(&theTime, start, stop);
 
-    printf("Thingss took %f ms\n", theTime);
+    printf("Things took %f ms\n", theTime);
 
 
     // for (int i = 0; i < N; i++) {
