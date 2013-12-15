@@ -3,8 +3,8 @@
 
 #include <stdio.h>
 
-const int BLOCKSIZE = 64;
-const int GRIDSIZE = 16;
+const int BLOCKSIZE = 32;
+const int GRIDSIZE = 1;
 
 
 __global__
@@ -20,7 +20,7 @@ void multiply(float *a, float *b, float *c, int N) {
 
 int main()
 {
-    const int N = 1024;  // matrix size
+    const int N = 512;  // matrix size
     const int size = N*N*sizeof(float);
 
     cudaEvent_t start, stop;
