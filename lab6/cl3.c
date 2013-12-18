@@ -35,29 +35,31 @@ struct timeval t_s_cpu, t_e_cpu,t_s_gpu, t_e_gpu;
 // Process image on CPU
 void cpu_WL(unsigned char *image, unsigned char *data, unsigned int length, unsigned int row_width)
 {
-  unsigned int i;
+  unsigned int i, j;
+  int first = 1;
   
-  for (i = 0; i < length; i++) // For all elements
+  for (i = 0; i < length; i+= 6) // For all elements
   {
-    if(i > length - row_width)
-      data[i] = 255 - image[i];
-    else {
-      //data[i] = image[i];
-        unsigned char in1 = image[i],
-          in2 = image[i + 3],
-          in3 = image[i + row_width],
-          in4 = image[in3 + 3];
+    if (i % row_width == 0 && first == 0)
+      i += row_width;
+    first = 0;
+
+    for (j=0; j < 3; j++) {
+      unsigned char in1 = image[i+j],
+          in2 = image[i+j + 3],
+          in3 = image[i+j + row_width],
+          in4 = image[i+j + row_width + 3];
 
       unsigned char out1 = (in1 + in2 + in3 + in4)/4,
-        out2 = (in1 + in2 - in3 - in4)/4,
-        out3 = (in1 - in2 + in3 - in4)/4,
-        out4 = (in1 - in2 - in3 + in4)/4;
- 
-      data[i] = out3; //out1;
-      //data[i] = out2;
-      //data[i + row_width / 2] = out2;
+        out2 = (in1 + in2 - in3 - in4)/4 + 128,
+        out3 = (in1 - in2 + in3 - in4)/4 + 128,
+        out4 = (in1 - in2 - in3 + in4)/4 + 128;
+      
+        data[i / 2 + j] = out1;
+        data[i/2 + j + row_width / 2] = out2;
+        data[i/2 + j + length / 2] = out3;
+        data[i/2 + j + row_width / 2 + length / 2] = out4;
     }
-    //data[i] = 255 - image[i];
   }
 }
 

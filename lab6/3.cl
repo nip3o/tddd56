@@ -5,5 +5,5 @@
 
 __kernel void kernelmain(__global unsigned char *image, __global unsigned char *data, const unsigned int length)
 {
-  data[get_global_id(0)] = 255 - image[get_global_id(0)];
+  data[get_global_id(0)] = image[get_global_id(0)];
 }
