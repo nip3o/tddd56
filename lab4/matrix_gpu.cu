@@ -35,8 +35,8 @@ int main()
 
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
-            a[i+j*N] = 10 + i;
-            b[i+j*N] = (float)j / N;
+            a[j+i*N] = 10 + j;
+            b[j+i*N] = (float)i / N;
         }
     }
 

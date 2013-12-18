@@ -72,9 +72,13 @@ __device__ int julia( int x, int y, float r, float im)
 __global__ void kernel( unsigned char *ptr, float r, float im)
 {
     // map from blockIdx to pixel position
-    int x = blockIdx.x;
-    int y = blockIdx.y;
-    int offset = x + y * gridDim.x;
+    int x = (blockIdx.x * blockDim.x) + threadIdx.x;
+    int y = (blockIdx.y * blockDim.y) + threadIdx.y;
+    int offset = x + y * blockDim.y * gridDim.x;
+
+    if(x == 0 && y == 0) {
+        printf("Offset: %d\n", offset);
+    }
 
     // now calculate the value at that position
     int juliaValue = julia( x, y, r, im );
@@ -97,8 +101,10 @@ void Draw()
 
     cudaEventRecord(start, 0);
 
-	dim3	grid(512, 512);
-    dim3    block(32, 32);
+#define BLOCKSIZE 16
+
+	dim3	grid(DIM/BLOCKSIZE, DIM/BLOCKSIZE);
+    dim3    block(BLOCKSIZE, BLOCKSIZE);
 
 	kernel<<<grid,block>>>( dev_bitmap, theReal, theImag);
 	cudaThreadSynchronize();

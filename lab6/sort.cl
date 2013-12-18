@@ -10,7 +10,7 @@ __kernel void sort(__global unsigned int *data,
 				   __global unsigned int *out)
 { 
   unsigned int pos = 0;
-  unsigned int i;
+  unsigned int i, k;
   unsigned int val;
 
   const int group_size = get_local_size(0);
@@ -21,25 +21,27 @@ __kernel void sort(__global unsigned int *data,
   int buffer_start = group_id * group_size;
   int buffer_stop = buffer_start + 512;
 
+  val = data[id];
+
   __local unsigned int buffer[BUFFSIZE];
 
-  val = data[id];
-  buffer[id % 512] = val;
-
-
-  barrier(CLK_LOCAL_MEM_FENCE);
-
   //find out how many values are smaller
+  for(k = 0; k < get_num_groups(0); k++) {
+    barrier(CLK_LOCAL_MEM_FENCE);
 
-    for (i = 0; i < get_global_size(0); i++) {
-    	if ( buffer_start <= i && i < buffer_stop ) {
-    		if (val > buffer[i % 512]) {
-    			pos++;
-    		}
-      } else if (val > data[i]) {
-        pos++;
-      }
+    buffer_start = k * group_size;
+    int offset = id % 512;
+    buffer[offset] = data[buffer_start + offset];
+    
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    for (i = 0; i < 512; i++) {
+  		if (val > buffer[i]) {
+  			pos++;
+  		}
     }
+
+  }
 
   out[pos] = val;
 }
