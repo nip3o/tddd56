@@ -55,10 +55,10 @@ void cpu_WL(unsigned char *image, unsigned char *data, unsigned int length, unsi
         out3 = (in1 - in2 + in3 - in4)/4 + 128,
         out4 = (in1 - in2 - in3 + in4)/4 + 128;
       
-        data[i / 2 + j] = out1;
-        data[i/2 + j + row_width / 2] = out2;
-        data[i/2 + j + length / 2] = out3;
-        data[i/2 + j + row_width / 2 + length / 2] = out4;
+        data[i/2 + j] = out1;
+        data[i/2 + j + row_width/2] = out2;
+        data[i/2 + j + length/2] = out3;
+        data[i/2 + j + row_width/2 + length/2] = out4;
     }
   }
 }
@@ -120,7 +120,7 @@ int init_OpenCL()
   return 0;
 }
 
-int gpu_WL(unsigned char *image, unsigned char *data, unsigned int length)
+int gpu_WL(unsigned char *image, unsigned char *data, unsigned int length, unsigned int row_width)
 {
   cl_int ciErrNum = CL_SUCCESS;
   size_t localWorkSize, globalWorkSize;
@@ -140,6 +140,7 @@ int gpu_WL(unsigned char *image, unsigned char *data, unsigned int length)
     ciErrNum  = clSetKernelArg(myKernel, 0, sizeof(cl_mem),  (void *) &in_data);
     ciErrNum |= clSetKernelArg(myKernel, 1, sizeof(cl_mem),  (void *) &out_data);
     ciErrNum |= clSetKernelArg(myKernel, 2, sizeof(cl_uint), (void *) &length);
+    ciErrNum |= clSetKernelArg(myKernel, 3, sizeof(cl_uint), (void *) &row_width);
     printCLError(ciErrNum,8);
 
     gettimeofday(&t_s_gpu, NULL);
@@ -213,7 +214,7 @@ void computeImages()
   gettimeofday(&t_e_cpu, NULL);
 
   gettimeofday(&t_s_gpu, NULL);
-  gpu_WL(image, data_gpu,length);
+  gpu_WL(image, data_gpu,length, dataWidth*3);
   gettimeofday(&t_e_gpu, NULL);
 
   printf("\n time needed: \nCPU: %i us\n",(int)(t_e_cpu.tv_usec-t_s_cpu.tv_usec + (t_e_cpu.tv_sec-t_s_cpu.tv_sec)*1000000));
